@@ -4,7 +4,7 @@
 pip install replicate-gradio
 ```
 
-That's it! Installing `replicate-gradio` will monkey-patch `gradio` to include a `.load_replicate` method that can be called to load and create GUIs around any Replicate API endpoint.
+That's it! When you import `replicate-gradio`, it will monkey-patch `gradio` to include a `.load_replicate` method that can be called to load and create GUIs around any Replicate API endpoint.
 
 # Usage
 
@@ -12,6 +12,7 @@ That's it! Installing `replicate-gradio` will monkey-patch `gradio` to include a
 
 ```python
 import gradio as gr
+import replicate-gradio
 
 gr.load_replicate(
     model='replicate-ai/fast-sdxl',
