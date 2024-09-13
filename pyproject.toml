@@ -25,8 +25,8 @@ repository = "https://github.com/your-username/replicate-gradio"
 [tool.setuptools.packages.find]
 where = ["replicate_gradio"]
 
-[tool.setuptools]
-packages = {find = {}}
+[tool.hatch.metadata.hooks.requirements_txt]
+filename = "requirements.txt"
 
 [project.optional-dependencies]
 dev = ["pytest"]
@@ -34,3 +34,7 @@ dev = ["pytest"]
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project.entry-points."console_scripts"]
+replicate_gradio_patch = "replicate_gradio:patch_gradio"
+
