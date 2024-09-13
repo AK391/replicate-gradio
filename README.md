@@ -31,6 +31,7 @@ gr.load_replicate(
 
 Run the Python file, and you should see a Gradio Interface connected to the model on Replicate!
 
+<img width="1246" alt="image" src="https://github.com/user-attachments/assets/2c975cbd-965f-4967-9468-d791aabfc9aa">
 
 
 # Customization & Composition
