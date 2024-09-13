@@ -12,7 +12,7 @@ That's it! When you import `replicate-gradio`, it will monkey-patch `gradio` to 
 
 # Basic Usage
 
-Just like if you were to use the `replicate` client, you should first save your Replicate API token to this environment variable:
+Just like if you were to use the `replicate` client, you should first save your Replicate API token to this environment variable (see note below):
 
 ```
 export REPLICATE_API_TOKEN=<your token>
@@ -69,3 +69,13 @@ demo.launch()
 # Under the Hood
 
 The `replicate-gradio` Python library has two dependencies: `replicate` and `gradio`. When imported, the library monkey-patches `gradio` to add a `.load_replicate()` method that calls the Replicate Inference API.
+
+-------
+
+Note: if you are getting a 401 authentication error, then the Replicate API Client is not able to get the API token from the environment variable. This happened to me as well, in which case save it in your Python session, like this:
+
+```py
+import os
+
+os.environ["REPLICATE_API_TOKEN"] = ...
+```
