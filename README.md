@@ -56,10 +56,11 @@ Or use your loaded Interface within larger Gradio Web UIs, e.g.
 
 ```python
 import gradio as gr
+import replicate_gradio
 
 with gr.Blocks() as demo:
     with gr.Tab("SDXL"):
-        gr.load_replicate('replicate-ai/fast-sdxl)
+        gr.load_replicate('replicate-ai/fast-sdxl')
     with gr.Tab("Flux"):
         gr.load_replicate('black-forest-labs/flux-schnell')
 
