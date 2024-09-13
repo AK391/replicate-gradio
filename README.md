@@ -4,6 +4,8 @@
 pip install replicate-gradio
 ```
 
+That's it! Installing `replicate-gradio` will monkey-patch `gradio` to include a `.load_replicate` method that can be called to load and create GUIs around any Replicate API endpoint.
+
 # Usage
 
 ## Basic Usage
