@@ -12,7 +12,7 @@ That's it! When you import `replicate-gradio`, it will monkey-patch `gradio` to 
 
 # Basic Usage
 
-Just like if you were to use the `replicate` client, you should first save your Replicate API token to this environment variable (see note below):
+Just like if you were to use the `replicate` client, you should first save your Replicate API token to this environment variable:
 
 ```
 export REPLICATE_API_TOKEN=<your token>
