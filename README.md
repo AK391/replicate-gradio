@@ -25,7 +25,7 @@ import gradio as gr
 import replicate-gradio
 
 gr.load_replicate(
-    model='replicate-ai/fast-sdxl',
+    model='black-forest-labs/flux-schnell',
 ).launch()
 ```
 
@@ -34,18 +34,34 @@ Run the Python file, and you should see a Gradio Interface connected to the mode
 <img width="1246" alt="image" src="https://github.com/user-attachments/assets/2c975cbd-965f-4967-9468-d791aabfc9aa">
 
 
-# Customization & Composition
+# Customization 
 
-Once you can create a Gradio UI from a Replicate endpoint, you can customize it by setting your own input and output components, or use it within larger Gradio Web UIs, e.g.
+Once you can create a Gradio UI from a Replicate endpoint, you can customize it by setting your own input and output components, or any other arguments to `gr.Interface`. For example, the screenshot above was generated with:
+
+```py
+import gradio as gr
+import replicate_gradio
+
+gr.load_replicate(
+    'black-forest-labs/flux-schnell',
+    inputs=gr.Textbox(lines=4),
+    examples=["a 19th century portrait of a man on the moon", "a small cartoon mouse eating an ice cream cone"],
+).launch()
+```
+
+
+# Composition
+
+Or use your loaded Interface within larger Gradio Web UIs, e.g.
 
 ```python
 import gradio as gr
 
 with gr.Blocks() as demo:
     with gr.Tab("SDXL"):
-        gr.load_replicate('replicate-ai/fast-sdxl' inputs=gr.Textbox(lines=4))
+        gr.load_replicate('replicate-ai/fast-sdxl)
     with gr.Tab("Flux"):
-        io = gr.load_replicate('replicate-ai/flux/schnell', pipeline="text-to-image")
+        gr.load_replicate('black-forest-labs/flux-schnell')
 
 demo.launch()
 ```
@@ -53,4 +69,3 @@ demo.launch()
 # Under the Hood
 
 The `replicate-gradio` Python library has two dependencies: `replicate` and `gradio`. When imported, the library monkey-patches `gradio` to add a `.load_replicate()` method that calls the Replicate Inference API.
-```
