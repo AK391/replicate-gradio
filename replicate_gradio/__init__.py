@@ -150,7 +150,7 @@ def get_fn(model_name: str, preprocess: Callable, postprocess: Callable):
         return postprocess(outputs)
     return fn
 
-def registry(name: str | Dict, token: str | None = None, inputs=None, outputs=None, src=None, **kwargs) -> gr.Interface:
+def registry(name: str | Dict, token: str | None = None, inputs=None, outputs=None, src=None, accept_token: bool = False, **kwargs) -> gr.Interface:
     """
     Create a Gradio Interface for a model on Replicate.
     Parameters:
@@ -159,18 +159,9 @@ def registry(name: str | Dict, token: str | None = None, inputs=None, outputs=No
         - inputs (List[gr.Component], optional): The input components to use instead of the default.
         - outputs (List[gr.Component], optional): The output components to use instead of the default.
         - src (callable, optional): Ignored, used by gr.load for routing.
+        - accept_token (bool, optional): Whether to accept a token input field.
     Returns:
         gr.Interface: A Gradio interface for the model.
-    Example:
-        ```python
-        import gradio as gr
-        import replicate_gradio
-
-        gr.load(
-            name='black-forest-labs/flux-depth-pro',
-            src=replicate_gradio.registry
-        ).launch()
-        ```
     """
     # Handle both string names and dict configurations
     if isinstance(name, dict):
@@ -183,6 +174,20 @@ def registry(name: str | Dict, token: str | None = None, inputs=None, outputs=No
         
     pipeline = get_pipeline(model_name)
     inputs_, outputs_, preprocess, postprocess = get_interface_args(pipeline)
+    
+    # Add token input if accept_token is True
+    if accept_token:
+        token_input = gr.Textbox(label="API Token", type="password")
+        inputs_ = [token_input] + inputs_
+        
+        # Modify preprocess function to handle token
+        original_preprocess = preprocess
+        def new_preprocess(token, *args):
+            if token:
+                os.environ["REPLICATE_API_TOKEN"] = token
+            return original_preprocess(*args)
+        preprocess = new_preprocess
+    
     inputs, outputs = inputs or inputs_, outputs or outputs_
 
     fn = get_fn(model_name, preprocess, postprocess)
