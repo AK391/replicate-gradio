@@ -76,7 +76,7 @@ PIPELINE_REGISTRY = {
             "steps": steps,
             "guidance": guidance
         },
-        "postprocess": lambda x: x[0].read() if isinstance(x, list) else x.read()
+        "postprocess": lambda x: bytes_to_image(x[0].read() if isinstance(x, list) else x.read())
     },
     "inpainting": {
         "inputs": [
@@ -90,7 +90,7 @@ PIPELINE_REGISTRY = {
             "image": resize_image_if_needed(image),
             "mask": resize_image_if_needed(mask),
         },
-        "postprocess": lambda x: x[0].read() if isinstance(x, list) else x.read()
+        "postprocess": lambda x: bytes_to_image(x[0].read() if isinstance(x, list) else x.read())
     },
     "depth-dev": {
         "inputs": [
@@ -102,7 +102,7 @@ PIPELINE_REGISTRY = {
             "prompt": prompt,
             "control_image": resize_image_if_needed(control_image)
         },
-        "postprocess": lambda x: [img.read() for img in x] if isinstance(x, list) else x.read()
+        "postprocess": lambda x: [bytes_to_image(img.read()) for img in x] if isinstance(x, list) else bytes_to_image(x.read())
     }
 }
 
