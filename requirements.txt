@@ -1,2 +1,2 @@
-replicate
-gradio
+replicate>=1.0.3
+gradio>=5.5.0
