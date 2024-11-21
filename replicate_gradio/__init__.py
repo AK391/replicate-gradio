@@ -82,7 +82,7 @@ PIPELINE_REGISTRY = {
         "inputs": [
             ("prompt", gr.Textbox, {"label": "Prompt"}),
             ("image", gr.Image, {"label": "Original Image"}),
-            ("mask", gr.Image, {"label": "Mask Image", "tool": "sketch", "source": "canvas", "type": "numpy"}),
+            ("mask", gr.Image, {"label": "Mask Image", "source": "canvas", "type": "numpy"}),
         ],
         "outputs": [("image", gr.Image, {})],
         "preprocess": lambda prompt, image, mask: {
