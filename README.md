@@ -24,51 +24,72 @@ Then in a Python file, write:
 import gradio as gr
 import replicate_gradio
 
-gr.load_replicate(
-    model='black-forest-labs/flux-schnell',
+demo = gr.load(
+    name='stability-ai/sdxl',  # or any other supported model
+    src=replicate_gradio.registry
 ).launch()
 ```
 
-# Specialized Model Support
+# Supported Model Types
 
-The library includes built-in support for several specialized model types with custom interfaces:
+The library includes built-in support for several model pipelines with custom interfaces:
 
-- **Depth Control** (`black-forest-labs/flux-depth-pro`)
-- **Canny Control** (`black-forest-labs/flux-canny-pro`) 
-- **Inpainting** (`black-forest-labs/flux-fill-pro`)
-- **Depth Development** (`black-forest-labs/flux-depth-dev`)
+- **Text-to-Image**
+  - `stability-ai/sdxl`
+  - `black-forest-labs/flux-pro`
+  - `stability-ai/stable-diffusion`
+- **Control-Net Models**
+  - `black-forest-labs/flux-depth-pro`
+  - `black-forest-labs/flux-canny-pro`
+  - `black-forest-labs/flux-depth-dev`
+- **Inpainting Models**
+  - `black-forest-labs/flux-fill-pro`
+  - `stability-ai/stable-diffusion-inpainting`
 
-These models automatically configure appropriate input and output components. For example:
+Each pipeline type automatically configures appropriate input and output components. For example:
 
 ```python
 import gradio as gr
 import replicate_gradio
 
-# Create a depth-control interface
-gr.load_replicate(
-    'black-forest-labs/flux-depth-pro',
+# Create a text-to-image interface
+demo = gr.load(
+    name='stability-ai/sdxl',
+    src=replicate_gradio.registry
+).launch()
+
+# Create a control-net interface
+demo = gr.load(
+    name='black-forest-labs/flux-depth-pro',
+    src=replicate_gradio.registry
+).launch()
+
+# Create an inpainting interface
+demo = gr.load(
+    name='black-forest-labs/flux-fill-pro',
+    src=replicate_gradio.registry
 ).launch()
 ```
 
 # Customization 
 
-Once you can create a Gradio UI from a Replicate endpoint, you can customize it by setting your own input and output components, or any other arguments to `gr.Interface`. For example, the screenshot above was generated with:
+You can customize the interface by providing additional arguments that work with `gr.Interface`. For example:
 
-```py
+```python
 import gradio as gr
 import replicate_gradio
 
-gr.load_replicate(
-    'black-forest-labs/flux-schnell',
+demo = gr.load(
+    name='stability-ai/sdxl',
+    src=replicate_gradio.registry,
     inputs=gr.Textbox(lines=4),
     examples=["a 19th century portrait of a man on the moon", "a small cartoon mouse eating an ice cream cone"],
 ).launch()
 ```
 
-
 # Composition
 
-Or use your loaded Interface within larger Gradio Web UIs, e.g.
+You can use the interfaces within larger Gradio Web UIs, e.g.
 
 ```python
 import gradio as gr
@@ -76,34 +97,46 @@ import replicate_gradio
 
 with gr.Blocks() as demo:
     with gr.Tab("SDXL"):
-        gr.load_replicate('replicate-ai/fast-sdxl')
+        gr.load(
+            name='stability-ai/sdxl',
+            src=replicate_gradio.registry
+        )
     with gr.Tab("Flux"):
-        gr.load_replicate('black-forest-labs/flux-schnell')
+        gr.load(
+            name='black-forest-labs/flux-pro',
+            src=replicate_gradio.registry
+        )
 
 demo.launch()
 ```
 
-# Under the Hood
-
-The `replicate-gradio` Python library has two dependencies: `replicate` and `gradio`. The library provides a custom loader that creates Gradio interfaces for Replicate models, with built-in support for specialized model types and custom interfaces.
-
 # Authentication Options
 
-There are two ways to provide your Replicate API token:
+There are three ways to provide your Replicate API token:
 
 1. Environment variable (recommended):
+```bash
+export REPLICATE_API_TOKEN=<your-token>
+```
+
+2. Direct in Python:
 ```python
 import os
 os.environ["REPLICATE_API_TOKEN"] = "your-token-here"
 ```
 
-2. Through the interface (useful for sharing demos):
+3. Through the interface (useful for sharing demos):
 ```python
-gr.load_replicate(
-    'model-name',
+demo = gr.load(
+    name='model-name',
+    src=replicate_gradio.registry,
     accept_token=True  # Adds a password field for the API token
 ).launch()
 ```
+
+# Under the Hood
+
+The `replicate-gradio` Python library has two dependencies: `replicate` and `gradio`. The library provides a custom loader that creates Gradio interfaces for Replicate models, with built-in support for specialized model types and custom interfaces.
 
 -------
 
