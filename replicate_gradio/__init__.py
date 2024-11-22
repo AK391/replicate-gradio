@@ -51,80 +51,112 @@ PIPELINE_REGISTRY = {
     "text-to-image": {
         "inputs": [
             ("prompt", gr.Textbox, {"label": "Prompt"}),
+            ("negative_prompt", gr.Textbox, {"label": "Negative Prompt", "optional": True}),
+            ("width", gr.Number, {"label": "Width", "value": 1024, "minimum": 512, "maximum": 2048, "step": 64, "optional": True}),
+            ("height", gr.Number, {"label": "Height", "value": 1024, "minimum": 512, "maximum": 2048, "step": 64, "optional": True}),
+            ("num_outputs", gr.Number, {"label": "Number of Images", "value": 1, "minimum": 1, "maximum": 4, "step": 1, "optional": True}),
+            ("scheduler", gr.Dropdown, {"label": "Scheduler", "choices": ["DPM++ 2M", "DPM++ 2M Karras", "DPM++ 2M SDE", "DPM++ 2M SDE Karras"], "optional": True}),
+            ("num_inference_steps", gr.Slider, {"label": "Steps", "minimum": 1, "maximum": 100, "value": 30, "optional": True}),
+            ("guidance_scale", gr.Slider, {"label": "Guidance Scale", "minimum": 1, "maximum": 20, "value": 7.5, "optional": True}),
+            ("seed", gr.Number, {"label": "Seed", "optional": True})
         ],
-        "outputs": [("image", gr.Image, {})],
-        "preprocess": lambda prompt: {
-            "prompt": prompt
+        "outputs": [("images", gr.Gallery, {})],
+        "preprocess": lambda *args: {
+            k: v for k, v in zip([
+                "prompt", "negative_prompt", "width", "height", "num_outputs",
+                "scheduler", "num_inference_steps", "guidance_scale", "seed"
+            ], args) if v is not None and v != ""
         },
-        "postprocess": lambda x: bytes_to_image(x[0].read() if isinstance(x, list) else x.read())
+        "postprocess": lambda x: [bytes_to_image(img.read()) for img in x] if isinstance(x, list) else [bytes_to_image(x.read())]
     },
-    "depth-control": {
+
+    "image-to-image": {
         "inputs": [
             ("prompt", gr.Textbox, {"label": "Prompt"}),
-            ("control_image", gr.Image, {"label": "Control Image"}),
-            ("guidance", gr.Slider, {"minimum": 1, "maximum": 20, "value": 7, "label": "Guidance"})
+            ("image", gr.Image, {"label": "Input Image", "type": "pil"}),
+            ("negative_prompt", gr.Textbox, {"label": "Negative Prompt", "optional": True}),
+            ("strength", gr.Slider, {"label": "Strength", "minimum": 0, "maximum": 1, "value": 0.7, "optional": True}),
+            ("num_inference_steps", gr.Slider, {"label": "Steps", "minimum": 1, "maximum": 100, "value": 30, "optional": True}),
+            ("guidance_scale", gr.Slider, {"label": "Guidance Scale", "minimum": 1, "maximum": 20, "value": 7.5, "optional": True}),
+            ("seed", gr.Number, {"label": "Seed", "optional": True})
         ],
-        "outputs": [("image", gr.Image, {})],
-        "preprocess": lambda prompt, control_image, guidance: {
-            "prompt": prompt,
-            "control_image": resize_image_if_needed(control_image),
-            "guidance": guidance
+        "outputs": [("images", gr.Gallery, {})],
+        "preprocess": lambda *args: {
+            k: (resize_image_if_needed(v) if k == "image" else v)
+            for k, v in zip([
+                "prompt", "image", "negative_prompt", "strength",
+                "num_inference_steps", "guidance_scale", "seed"
+            ], args) if v is not None and v != ""
         },
-        "postprocess": lambda x: bytes_to_image(x[0].read() if isinstance(x, list) else x.read())
+        "postprocess": lambda x: [bytes_to_image(img.read()) for img in x] if isinstance(x, list) else [bytes_to_image(x.read())]
     },
-    "canny-control": {
+
+    "control-net": {
         "inputs": [
             ("prompt", gr.Textbox, {"label": "Prompt"}),
-            ("control_image", gr.Image, {"label": "Control Image"}),
-            ("steps", gr.Slider, {"minimum": 1, "maximum": 50, "value": 28, "label": "Steps"}),
-            ("guidance", gr.Slider, {"minimum": 1, "maximum": 50, "value": 25, "label": "Guidance"})
+            ("control_image", gr.Image, {"label": "Control Image", "type": "pil"}),
+            ("negative_prompt", gr.Textbox, {"label": "Negative Prompt", "optional": True}),
+            ("guidance_scale", gr.Slider, {"label": "Guidance Scale", "minimum": 1, "maximum": 20, "value": 7.5, "optional": True}),
+            ("control_guidance_scale", gr.Slider, {"label": "Control Guidance Scale", "minimum": 1, "maximum": 20, "value": 1.5, "optional": True}),
+            ("num_inference_steps", gr.Slider, {"label": "Steps", "minimum": 1, "maximum": 100, "value": 30, "optional": True}),
+            ("seed", gr.Number, {"label": "Seed", "optional": True})
         ],
-        "outputs": [("image", gr.Image, {})],
-        "preprocess": lambda prompt, control_image, steps, guidance: {
-            "prompt": prompt,
-            "control_image": resize_image_if_needed(control_image),
-            "steps": steps,
-            "guidance": guidance
+        "outputs": [("images", gr.Gallery, {})],
+        "preprocess": lambda *args: {
+            k: (resize_image_if_needed(v) if k == "control_image" else v)
+            for k, v in zip([
+                "prompt", "control_image", "negative_prompt", "guidance_scale",
+                "control_guidance_scale", "num_inference_steps", "seed"
+            ], args) if v is not None and v != ""
         },
-        "postprocess": lambda x: bytes_to_image(x[0].read() if isinstance(x, list) else x.read())
+        "postprocess": lambda x: [bytes_to_image(img.read()) for img in x] if isinstance(x, list) else [bytes_to_image(x.read())]
     },
+
     "inpainting": {
         "inputs": [
             ("prompt", gr.Textbox, {"label": "Prompt"}),
-            ("image", gr.Image, {"label": "Original Image", "type": "numpy"}),
-            ("mask", gr.Image, {"label": "Mask Image", "type": "numpy", "sources": ["upload", "clipboard"]}),
+            ("image", gr.Image, {"label": "Original Image", "type": "pil"}),
+            ("mask", gr.Image, {"label": "Mask Image", "type": "pil"}),
+            ("negative_prompt", gr.Textbox, {"label": "Negative Prompt", "optional": True}),
+            ("num_inference_steps", gr.Slider, {"label": "Steps", "minimum": 1, "maximum": 100, "value": 30, "optional": True}),
+            ("guidance_scale", gr.Slider, {"label": "Guidance Scale", "minimum": 1, "maximum": 20, "value": 7.5, "optional": True}),
+            ("seed", gr.Number, {"label": "Seed", "optional": True})
         ],
-        "outputs": [("image", gr.Image, {})],
-        "preprocess": lambda prompt, image, mask: {
-            "prompt": prompt,
-            "image": resize_image_if_needed(image),
-            "mask": resize_image_if_needed(mask),
+        "outputs": [("images", gr.Gallery, {})],
+        "preprocess": lambda *args: {
+            k: (resize_image_if_needed(v) if k in ["image", "mask"] else v)
+            for k, v in zip([
+                "prompt", "image", "mask", "negative_prompt",
+                "num_inference_steps", "guidance_scale", "seed"
+            ], args) if v is not None and v != ""
         },
-        "postprocess": lambda x: bytes_to_image(x[0].read() if isinstance(x, list) else x.read())
-    },
-    "depth-dev": {
-        "inputs": [
-            ("prompt", gr.Textbox, {"label": "Prompt"}),
-            ("control_image", gr.Image, {"label": "Control Image"}),
-        ],
-        "outputs": [("image", gr.Gallery, {})],
-        "preprocess": lambda prompt, control_image: {
-            "prompt": prompt,
-            "control_image": resize_image_if_needed(control_image)
-        },
-        "postprocess": lambda x: [bytes_to_image(img.read()) for img in x] if isinstance(x, list) else bytes_to_image(x.read())
+        "postprocess": lambda x: [bytes_to_image(img.read()) for img in x] if isinstance(x, list) else [bytes_to_image(x.read())]
     }
 }
 
 MODEL_TO_PIPELINE = {
-    "black-forest-labs/flux-depth-pro": "depth-control",
-    "black-forest-labs/flux-canny-pro": "canny-control",
+    "stability-ai/sdxl": "text-to-image",
+    "black-forest-labs/flux-pro": "text-to-image",
+    "stability-ai/stable-diffusion": "text-to-image",
+    
+    "black-forest-labs/flux-depth-pro": "control-net",
+    "black-forest-labs/flux-canny-pro": "control-net",
+    "black-forest-labs/flux-depth-dev": "control-net",
+    
     "black-forest-labs/flux-fill-pro": "inpainting",
-    "black-forest-labs/flux-depth-dev": "depth-dev",
-    "stability-ai/sdxl": "text-to-image"
+    "stability-ai/stable-diffusion-inpainting": "inpainting",
 }
 
 def create_component(comp_type: type, name: str, config: Dict[str, Any]) -> gr.components.Component:
+    # Remove 'optional' from config as it's not a valid Gradio parameter
+    config = config.copy()
+    is_optional = config.pop('optional', False)
+    
+    # Add "(Optional)" to label if the field is optional
+    if is_optional:
+        label = config.get('label', name)
+        config['label'] = f"{label} (Optional)"
+    
     return comp_type(label=config.get("label", name), **{k:v for k,v in config.items() if k != "label"})
 
 def get_pipeline(model: str) -> str:
