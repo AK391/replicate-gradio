@@ -44,8 +44,13 @@ def resize_image_if_needed(image, max_size=1024):
     return f"data:image/jpeg;base64,{img_str}"
 
 def bytes_to_image(byte_data):
-    """Convert bytes to PIL Image"""
-    return Image.open(io.BytesIO(byte_data))
+    """Convert bytes to PIL Image and ensure we get fresh data"""
+    if isinstance(byte_data, bytes):
+        return Image.open(io.BytesIO(byte_data))
+    # For file-like objects
+    if hasattr(byte_data, 'seek'):
+        byte_data.seek(0)
+    return Image.open(io.BytesIO(byte_data.read()))
 
 PIPELINE_REGISTRY = {
     "text-to-image": {
@@ -67,7 +72,7 @@ PIPELINE_REGISTRY = {
                 "scheduler", "num_inference_steps", "guidance_scale", "seed"
             ], args) if v is not None and v != ""
         },
-        "postprocess": lambda x: [bytes_to_image(img.read()) for img in x] if isinstance(x, list) else [bytes_to_image(x.read())]
+        "postprocess": lambda x: [bytes_to_image(img) for img in x] if isinstance(x, list) else [bytes_to_image(x)]
     },
 
     "image-to-image": {
@@ -88,7 +93,7 @@ PIPELINE_REGISTRY = {
                 "num_inference_steps", "guidance_scale", "seed"
             ], args) if v is not None and v != ""
         },
-        "postprocess": lambda x: [bytes_to_image(img.read()) for img in x] if isinstance(x, list) else [bytes_to_image(x.read())]
+        "postprocess": lambda x: [bytes_to_image(img) for img in x] if isinstance(x, list) else [bytes_to_image(x)]
     },
 
     "control-net": {
@@ -109,7 +114,7 @@ PIPELINE_REGISTRY = {
                 "control_guidance_scale", "num_inference_steps", "seed"
             ], args) if v is not None and v != ""
         },
-        "postprocess": lambda x: [bytes_to_image(img.read()) for img in x] if isinstance(x, list) else [bytes_to_image(x.read())]
+        "postprocess": lambda x: [bytes_to_image(img) for img in x] if isinstance(x, list) else [bytes_to_image(x)]
     },
 
     "inpainting": {
@@ -130,7 +135,7 @@ PIPELINE_REGISTRY = {
                 "num_inference_steps", "guidance_scale", "seed"
             ], args) if v is not None and v != ""
         },
-        "postprocess": lambda x: [bytes_to_image(img.read()) for img in x] if isinstance(x, list) else [bytes_to_image(x.read())]
+        "postprocess": lambda x: [bytes_to_image(img) for img in x] if isinstance(x, list) else [bytes_to_image(x)]
     }
 }
 
@@ -190,6 +195,11 @@ def get_fn(model_name: str, preprocess: Callable, postprocess: Callable):
     async def fn(*args):
         args = preprocess(*args)
         outputs = await async_run_with_timeout(model_name, args)
+        # Force immediate processing of outputs
+        if isinstance(outputs, list):
+            outputs = [output.read() if hasattr(output, 'read') else output for output in outputs]
+        elif hasattr(outputs, 'read'):
+            outputs = outputs.read()
         return postprocess(outputs)
     return fn
 
