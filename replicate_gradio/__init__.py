@@ -48,6 +48,16 @@ def bytes_to_image(byte_data):
     return Image.open(io.BytesIO(byte_data))
 
 PIPELINE_REGISTRY = {
+    "text-to-image": {
+        "inputs": [
+            ("prompt", gr.Textbox, {"label": "Prompt"}),
+        ],
+        "outputs": [("image", gr.Image, {})],
+        "preprocess": lambda prompt: {
+            "prompt": prompt
+        },
+        "postprocess": lambda x: bytes_to_image(x[0].read() if isinstance(x, list) else x.read())
+    },
     "depth-control": {
         "inputs": [
             ("prompt", gr.Textbox, {"label": "Prompt"}),
