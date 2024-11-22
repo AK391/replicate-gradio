@@ -120,7 +120,8 @@ MODEL_TO_PIPELINE = {
     "black-forest-labs/flux-depth-pro": "depth-control",
     "black-forest-labs/flux-canny-pro": "canny-control",
     "black-forest-labs/flux-fill-pro": "inpainting",
-    "black-forest-labs/flux-depth-dev": "depth-dev"
+    "black-forest-labs/flux-depth-dev": "depth-dev",
+    "stability-ai/sdxl": "text-to-image"
 }
 
 def create_component(comp_type: type, name: str, config: Dict[str, Any]) -> gr.components.Component:
