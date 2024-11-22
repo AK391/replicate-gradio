@@ -236,7 +236,5 @@ def registry(name: str | Dict, token: str | None = None, inputs=None, outputs=No
     fn = get_fn(model_name, preprocess, postprocess)
     return gr.Interface(fn=fn, inputs=inputs, outputs=outputs, **kwargs)
 
-# Register the function with Gradio's loading system
-gr.load = registry
 
 __version__ = "0.1.0"
