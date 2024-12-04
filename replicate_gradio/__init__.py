@@ -158,7 +158,7 @@ PIPELINE_REGISTRY = {
             ("video_length", gr.Number, {"label": "Video Length", "value": 129, "minimum": 14, "maximum": 129, "step": 1, "optional": True}),
             ("width", gr.Number, {"label": "Width", "value": 576, "minimum": 320, "maximum": 1024, "step": 64, "optional": True}),
             ("height", gr.Number, {"label": "Height", "value": 320, "minimum": 320, "maximum": 576, "step": 64, "optional": True}),
-            ("infer_steps", gr.Slider, {"label": "Steps", "minimum": 1, "maximum": 100, "value": 50, "optional": True}),
+            ("infer_steps", gr.Slider, {"label": "Steps", "minimum": 1, "maximum": 50, "value": 30, "optional": True}),
             ("guidance_scale", gr.Slider, {"label": "Guidance Scale", "minimum": 1, "maximum": 20, "value": 1.0, "optional": True}),
             ("seed", gr.Number, {"label": "Seed", "optional": True})
         ],
