@@ -9,6 +9,7 @@ import io
 import base64
 import numpy as np
 import tempfile
+import time
 
 def resize_image_if_needed(image, max_size=1024):
     """Resize image if either dimension exceeds max_size while maintaining aspect ratio"""
@@ -63,7 +64,11 @@ def save_bytes_to_video(video_bytes):
     with open(temp_path, "wb") as f:
         f.write(video_bytes)
     
-    return temp_path
+    # Ensure file is fully written and closed
+    time.sleep(0.5)  # Small delay to ensure file is ready
+    
+    # Return the absolute path to ensure proper loading
+    return os.path.abspath(temp_path)
 
 PIPELINE_REGISTRY = {
     "text-to-image": {
@@ -225,11 +230,14 @@ async def async_run_with_timeout(model_name: str, args: dict, save_path: str = N
             input=args
         )
         
-        # If save_path is provided and output is file-like, save to disk
-        if save_path and hasattr(output, 'read'):
-            with open(save_path, "wb") as file:
-                file.write(output.read())
-            return save_path
+        # For video outputs, read the data immediately
+        if isinstance(output, (bytes, memoryview)) or hasattr(output, 'read'):
+            data = output.read() if hasattr(output, 'read') else output
+            if save_path:
+                with open(save_path, "wb") as file:
+                    file.write(data)
+                return save_path
+            return data
             
         return output
     except Exception as e:
@@ -239,11 +247,7 @@ def get_fn(model_name: str, preprocess: Callable, postprocess: Callable):
     async def fn(*args):
         args = preprocess(*args)
         outputs = await async_run_with_timeout(model_name, args)
-        # Force immediate processing of outputs
-        if isinstance(outputs, list):
-            outputs = [output.read() if hasattr(output, 'read') else output for output in outputs]
-        elif hasattr(outputs, 'read'):
-            outputs = outputs.read()
+        # No need to force read here since we already handled it in async_run_with_timeout
         return postprocess(outputs)
     return fn
 
