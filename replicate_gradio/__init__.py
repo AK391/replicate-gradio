@@ -63,15 +63,20 @@ def save_bytes_to_video(video_bytes):
     temp_dir = tempfile.gettempdir()
     temp_path = os.path.join(temp_dir, f"temp_{int(time.time())}_{os.urandom(4).hex()}.mp4")
     
-    # Write the bytes to the temporary file
-    with open(temp_path, "wb") as f:
-        f.write(video_bytes)
-    
-    # Ensure the file exists and has content
-    if not os.path.exists(temp_path) or os.path.getsize(temp_path) == 0:
-        raise ValueError("Failed to save video file or file is empty")
+    try:
+        # Write the bytes to the temporary file
+        with open(temp_path, "wb") as f:
+            f.write(video_bytes)
         
-    return str(temp_path)  # Return string path as expected by Gradio
+        # Ensure the file exists and has content
+        if not os.path.exists(temp_path) or os.path.getsize(temp_path) == 0:
+            raise ValueError("Failed to save video file or file is empty")
+        
+        return str(temp_path)  # Return string path as expected by Gradio
+    finally:
+        # Clean up the temporary file
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 PIPELINE_REGISTRY = {
     "text-to-image": {
@@ -290,6 +295,8 @@ async def async_run_with_timeout(model_name: str, args: dict):
             return output.url
         return output
     except Exception as e:
+        # Log the error for debugging
+        print(f"Error during model prediction: {str(e)}")
         raise gr.Error(f"Model prediction failed: {str(e)}")
 
 def get_fn(model_name: str, preprocess: Callable, postprocess: Callable):
