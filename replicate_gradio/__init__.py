@@ -188,6 +188,7 @@ PIPELINE_REGISTRY = {
                 "label": "Infer Steps",
                 "value": 30,
                 "minimum": 1,
+                "maximum": 50,
                 "info": "Number of inference steps."
             }),
             ("flow_shift", gr.Number, {
