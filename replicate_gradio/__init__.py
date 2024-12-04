@@ -172,7 +172,7 @@ MODEL_TO_PIPELINE = {
     
     "black-forest-labs/flux-fill-pro": "inpainting",
     "stability-ai/stable-diffusion-inpainting": "inpainting",
-    "zsxkib/hunyuan-video": "text-to-video",
+    "zsxkib/hunyuan-video:349dbe0feb6e8e4a6fab3c6a4dd642413e6c10735353de8b40f12abeee203617": "text-to-video",
 }
 
 def create_component(comp_type: type, name: str, config: Dict[str, Any]) -> gr.components.Component:
@@ -204,12 +204,19 @@ def get_interface_args(pipeline: str) -> Tuple[List, List, Callable, Callable]:
     
     return inputs, outputs, config["preprocess"], config["postprocess"]
 
-async def async_run_with_timeout(model_name: str, args: dict):
+async def async_run_with_timeout(model_name: str, args: dict, save_path: str = None):
     try:
         output = replicate.run(
             model_name,
             input=args
         )
+        
+        # If save_path is provided and output is file-like, save to disk
+        if save_path and hasattr(output, 'read'):
+            with open(save_path, "wb") as file:
+                file.write(output.read())
+            return save_path
+            
         return output
     except Exception as e:
         raise gr.Error(f"Model prediction failed: {str(e)}")
