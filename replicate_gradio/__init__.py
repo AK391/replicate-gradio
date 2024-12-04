@@ -186,8 +186,9 @@ PIPELINE_REGISTRY = {
             }),
             ("infer_steps", gr.Number, {
                 "label": "Infer Steps",
-                "value": 50,
+                "value": 30,
                 "minimum": 1,
+                "maximum": 50,
                 "info": "Number of inference steps."
             }),
             ("flow_shift", gr.Number, {
@@ -228,10 +229,7 @@ PIPELINE_REGISTRY = {
                 "infer_steps", "flow_shift", "embedded_guidance_scale", "seed"
             ], args) if v is not None and v != ""
         },
-        "postprocess": lambda x: (
-            x.url if hasattr(x, 'url') 
-            else (lambda p: os.remove(p) or p)(x)  # Delete file after getting path
-        ),
+        "postprocess": lambda x: x.url if hasattr(x, 'url') else x  # Extract URL from FileOutput
     },
 }
 
