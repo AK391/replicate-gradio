@@ -8,6 +8,7 @@ from PIL import Image
 import io
 import base64
 import numpy as np
+import tempfile
 
 def resize_image_if_needed(image, max_size=1024):
     """Resize image if either dimension exceeds max_size while maintaining aspect ratio"""
@@ -51,6 +52,18 @@ def bytes_to_image(byte_data):
     if hasattr(byte_data, 'seek'):
         byte_data.seek(0)
     return Image.open(io.BytesIO(byte_data.read()))
+
+def save_bytes_to_video(video_bytes):
+    """Save video bytes to a temporary file and return the path"""
+    # Create a temporary file with .mp4 extension
+    temp_dir = tempfile.gettempdir()
+    temp_path = os.path.join(temp_dir, f"temp_{os.urandom(8).hex()}.mp4")
+    
+    # Write the bytes to the temporary file
+    with open(temp_path, "wb") as f:
+        f.write(video_bytes)
+    
+    return temp_path
 
 PIPELINE_REGISTRY = {
     "text-to-image": {
@@ -141,23 +154,24 @@ PIPELINE_REGISTRY = {
     "text-to-video": {
         "inputs": [
             ("prompt", gr.Textbox, {"label": "Prompt"}),
-            ("negative_prompt", gr.Textbox, {"label": "Negative Prompt", "optional": True}),
-            ("num_frames", gr.Number, {"label": "Number of Frames", "value": 16, "minimum": 14, "maximum": 120, "step": 1, "optional": True}),
-            ("fps", gr.Number, {"label": "FPS", "value": 8, "minimum": 1, "maximum": 30, "step": 1, "optional": True}),
-            ("num_inference_steps", gr.Slider, {"label": "Steps", "minimum": 1, "maximum": 100, "value": 50, "optional": True}),
-            ("guidance_scale", gr.Slider, {"label": "Guidance Scale", "minimum": 1, "maximum": 20, "value": 9.0, "optional": True}),
+            ("neg_prompt", gr.Textbox, {"label": "Negative Prompt", "optional": True}),
+            ("video_length", gr.Number, {"label": "Video Length", "value": 129, "minimum": 14, "maximum": 129, "step": 1, "optional": True}),
             ("width", gr.Number, {"label": "Width", "value": 576, "minimum": 320, "maximum": 1024, "step": 64, "optional": True}),
             ("height", gr.Number, {"label": "Height", "value": 320, "minimum": 320, "maximum": 576, "step": 64, "optional": True}),
+            ("infer_steps", gr.Slider, {"label": "Steps", "minimum": 1, "maximum": 100, "value": 50, "optional": True}),
+            ("guidance_scale", gr.Slider, {"label": "Guidance Scale", "minimum": 1, "maximum": 20, "value": 1.0, "optional": True}),
             ("seed", gr.Number, {"label": "Seed", "optional": True})
         ],
         "outputs": [("video", gr.Video, {})],
         "preprocess": lambda *args: {
-            k: v for k, v in zip([
-                "prompt", "negative_prompt", "num_frames", "fps",
-                "num_inference_steps", "guidance_scale", "width", "height", "seed"
+            k: (int(v) if k in ["video_length", "width", "height", "infer_steps", "seed"] else 
+                float(v) if k in ["guidance_scale"] else v)
+            for k, v in zip([
+                "prompt", "neg_prompt", "video_length", "width", 
+                "height", "infer_steps", "guidance_scale", "seed"
             ], args) if v is not None and v != ""
         },
-        "postprocess": lambda x: x
+        "postprocess": lambda x: save_bytes_to_video(x) if isinstance(x, bytes) else x
     },
 }
 
