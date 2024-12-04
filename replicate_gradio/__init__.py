@@ -56,19 +56,22 @@ def bytes_to_image(byte_data):
 
 def save_bytes_to_video(video_bytes):
     """Save video bytes to a temporary file and return the path"""
+    if not isinstance(video_bytes, bytes):
+        raise ValueError(f"Expected bytes input, got {type(video_bytes)}")
+        
     # Create a temporary file with .mp4 extension
     temp_dir = tempfile.gettempdir()
-    temp_path = os.path.join(temp_dir, f"temp_{os.urandom(8).hex()}.mp4")
+    temp_path = os.path.join(temp_dir, f"temp_{int(time.time())}_{os.urandom(4).hex()}.mp4")
     
     # Write the bytes to the temporary file
     with open(temp_path, "wb") as f:
         f.write(video_bytes)
     
-    # Ensure file is fully written and closed
-    time.sleep(0.5)  # Small delay to ensure file is ready
-    
-    # Return the absolute path to ensure proper loading
-    return os.path.abspath(temp_path)
+    # Ensure the file exists and has content
+    if not os.path.exists(temp_path) or os.path.getsize(temp_path) == 0:
+        raise ValueError("Failed to save video file or file is empty")
+        
+    return str(temp_path)  # Return string path as expected by Gradio
 
 PIPELINE_REGISTRY = {
     "text-to-image": {
@@ -158,25 +161,77 @@ PIPELINE_REGISTRY = {
 
     "text-to-video": {
         "inputs": [
-            ("prompt", gr.Textbox, {"label": "Prompt"}),
-            ("neg_prompt", gr.Textbox, {"label": "Negative Prompt", "optional": True}),
-            ("video_length", gr.Number, {"label": "Video Length", "value": 129, "minimum": 14, "maximum": 129, "step": 1, "optional": True}),
-            ("width", gr.Number, {"label": "Width", "value": 576, "minimum": 320, "maximum": 1024, "step": 64, "optional": True}),
-            ("height", gr.Number, {"label": "Height", "value": 320, "minimum": 320, "maximum": 576, "step": 64, "optional": True}),
-            ("infer_steps", gr.Slider, {"label": "Steps", "minimum": 1, "maximum": 50, "value": 30, "optional": True}),
-            ("guidance_scale", gr.Slider, {"label": "Guidance Scale", "minimum": 1, "maximum": 20, "value": 1.0, "optional": True}),
-            ("seed", gr.Number, {"label": "Seed", "optional": True})
+            ("prompt", gr.Textbox, {
+                "label": "Prompt",
+                "value": "A cat walks on the grass, realistic style.",
+                "info": "Text prompt to generate video."
+            }),
+            ("height", gr.Number, {
+                "label": "Height",
+                "value": 480,
+                "minimum": 1,
+                "info": "Height of the video in pixels."
+            }),
+            ("width", gr.Number, {
+                "label": "Width",
+                "value": 854,
+                "minimum": 1,
+                "info": "Width of the video in pixels."
+            }),
+            ("video_length", gr.Number, {
+                "label": "Video Length",
+                "value": 129,
+                "minimum": 1,
+                "info": "Length of the video in frames."
+            }),
+            ("infer_steps", gr.Number, {
+                "label": "Infer Steps",
+                "value": 50,
+                "minimum": 1,
+                "info": "Number of inference steps."
+            }),
+            ("flow_shift", gr.Number, {
+                "label": "Flow Shift",
+                "value": 7,
+                "info": "Flow-shift parameter."
+            }),
+            ("embedded_guidance_scale", gr.Slider, {
+                "label": "Embedded Guidance Scale",
+                "value": 6,
+                "minimum": 1,
+                "maximum": 6,
+                "info": "Embedded guidance scale for generation."
+            }),
+            ("seed", gr.Number, {
+                "label": "Seed",
+                "optional": True,
+                "info": "Random seed for reproducibility."
+            })
         ],
-        "outputs": [("video", gr.Video, {})],
+        "outputs": [
+            ("video", gr.Video, {
+                "format": "mp4",
+                "autoplay": True,
+                "show_label": True,
+                "label": "Generated Video",
+                "height": 480,
+                "width": 854,
+                "interactive": False,
+                "show_download_button": True
+            })
+        ],
         "preprocess": lambda *args: {
-            k: (int(v) if k in ["video_length", "width", "height", "infer_steps", "seed"] else 
-                float(v) if k in ["guidance_scale"] else v)
+            k: (int(v) if k in ["height", "width", "video_length", "infer_steps", "seed"] else 
+                float(v) if k in ["flow_shift", "embedded_guidance_scale"] else v)
             for k, v in zip([
-                "prompt", "neg_prompt", "video_length", "width", 
-                "height", "infer_steps", "guidance_scale", "seed"
+                "prompt", "height", "width", "video_length", 
+                "infer_steps", "flow_shift", "embedded_guidance_scale", "seed"
             ], args) if v is not None and v != ""
         },
-        "postprocess": lambda x: save_bytes_to_video(x) if isinstance(x, bytes) else x
+        "postprocess": lambda x: (
+            x.url if hasattr(x, 'url') 
+            else (lambda p: os.remove(p) or p)(x)  # Delete file after getting path
+        ),
     },
 }
 
@@ -223,32 +278,27 @@ def get_interface_args(pipeline: str) -> Tuple[List, List, Callable, Callable]:
     
     return inputs, outputs, config["preprocess"], config["postprocess"]
 
-async def async_run_with_timeout(model_name: str, args: dict, save_path: str = None):
+async def async_run_with_timeout(model_name: str, args: dict):
     try:
         output = replicate.run(
             model_name,
             input=args
         )
-        
-        # For video outputs, read the data immediately
-        if isinstance(output, (bytes, memoryview)) or hasattr(output, 'read'):
-            data = output.read() if hasattr(output, 'read') else output
-            if save_path:
-                with open(save_path, "wb") as file:
-                    file.write(data)
-                return save_path
-            return data
-            
+        # Handle FileOutput type from replicate
+        if hasattr(output, 'url'):
+            return output.url
         return output
     except Exception as e:
         raise gr.Error(f"Model prediction failed: {str(e)}")
 
 def get_fn(model_name: str, preprocess: Callable, postprocess: Callable):
     async def fn(*args):
-        args = preprocess(*args)
-        outputs = await async_run_with_timeout(model_name, args)
-        # No need to force read here since we already handled it in async_run_with_timeout
-        return postprocess(outputs)
+        try:
+            args = preprocess(*args)
+            output = await async_run_with_timeout(model_name, args)
+            return output  # Return the URL
+        except Exception as e:
+            raise gr.Error(f"Error: {str(e)}")
     return fn
 
 def registry(name: str | Dict, token: str | None = None, inputs=None, outputs=None, src=None, accept_token: bool = False, **kwargs) -> gr.Interface:
