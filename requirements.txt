@@ -1,2 +1,2 @@
-replicate>=1.0.3
+replicate>=1.0.4
 gradio>=5.5.0

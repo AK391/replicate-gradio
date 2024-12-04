@@ -136,7 +136,29 @@ PIPELINE_REGISTRY = {
             ], args) if v is not None and v != ""
         },
         "postprocess": lambda x: [bytes_to_image(img) for img in x] if isinstance(x, list) else [bytes_to_image(x)]
-    }
+    },
+
+    "text-to-video": {
+        "inputs": [
+            ("prompt", gr.Textbox, {"label": "Prompt"}),
+            ("negative_prompt", gr.Textbox, {"label": "Negative Prompt", "optional": True}),
+            ("num_frames", gr.Number, {"label": "Number of Frames", "value": 16, "minimum": 14, "maximum": 120, "step": 1, "optional": True}),
+            ("fps", gr.Number, {"label": "FPS", "value": 8, "minimum": 1, "maximum": 30, "step": 1, "optional": True}),
+            ("num_inference_steps", gr.Slider, {"label": "Steps", "minimum": 1, "maximum": 100, "value": 50, "optional": True}),
+            ("guidance_scale", gr.Slider, {"label": "Guidance Scale", "minimum": 1, "maximum": 20, "value": 9.0, "optional": True}),
+            ("width", gr.Number, {"label": "Width", "value": 576, "minimum": 320, "maximum": 1024, "step": 64, "optional": True}),
+            ("height", gr.Number, {"label": "Height", "value": 320, "minimum": 320, "maximum": 576, "step": 64, "optional": True}),
+            ("seed", gr.Number, {"label": "Seed", "optional": True})
+        ],
+        "outputs": [("video", gr.Video, {})],
+        "preprocess": lambda *args: {
+            k: v for k, v in zip([
+                "prompt", "negative_prompt", "num_frames", "fps",
+                "num_inference_steps", "guidance_scale", "width", "height", "seed"
+            ], args) if v is not None and v != ""
+        },
+        "postprocess": lambda x: x
+    },
 }
 
 MODEL_TO_PIPELINE = {
@@ -150,6 +172,7 @@ MODEL_TO_PIPELINE = {
     
     "black-forest-labs/flux-fill-pro": "inpainting",
     "stability-ai/stable-diffusion-inpainting": "inpainting",
+    "zsxkib/hunyuan-video": "text-to-video",
 }
 
 def create_component(comp_type: type, name: str, config: Dict[str, Any]) -> gr.components.Component:
