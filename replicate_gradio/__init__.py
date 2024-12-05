@@ -286,7 +286,7 @@ def get_interface_args(pipeline: str) -> Tuple[List, List, Callable, Callable]:
 
 async def async_run_with_timeout(model_name: str, args: dict):
     try:
-        output = replicate.run(
+        output = await replicate.async_run(
             model_name,
             input=args
         )
